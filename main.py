@@ -1,5 +1,25 @@
 import os
 import base64
+import socket
+import datetime
+import threading
+
+
+def start_server():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(('localhost', 5000))  # Связываем сокет с адресом и портом
+    server_socket.listen(1)  # Ожидаем подключения от клиента
+    print("Сервер запущен и ожидает подключения...")
+
+    while True:
+        client_socket, addr = server_socket.accept()  # Принимаем подключение
+        print(f"Подключение от {addr}")
+
+        # Отправляем текущую временную метку клиенту
+        timestamp = datetime.datetime.now().isoformat()
+        client_socket.sendall(timestamp.encode('utf-8'))
+
+        client_socket.close()  # Закрываем соединение с клиентом
 
 
 def check_key_exists(key_path):
@@ -59,4 +79,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # Запускаем сервер в отдельном потоке
+    server_thread = threading.Thread(target=start_server)
+    server_thread.start()
+
+    # Запускаем основную функцию
     main()
