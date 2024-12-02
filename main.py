@@ -1,81 +1,67 @@
-import os
-import base64
 import socket
 import datetime
 import threading
+import json
 
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('localhost', 5000))  # Связываем сокет с адресом и портом
-    server_socket.listen(1)  # Ожидаем подключения от клиента
+    server_socket.bind(('localhost', 5000))
+    server_socket.listen(1)
     print("Сервер запущен и ожидает подключения...")
 
     while True:
-        client_socket, addr = server_socket.accept()  # Принимаем подключение
+        client_socket, addr = server_socket.accept()
         print(f"Подключение от {addr}")
 
         # Отправляем текущую временную метку клиенту
         timestamp = datetime.datetime.now().isoformat()
         client_socket.sendall(timestamp.encode('utf-8'))
 
-        client_socket.close()  # Закрываем соединение с клиентом
+        client_socket.close()
 
 
-def check_key_exists(key_path):
-    """Проверяет, существует ли файл ключа."""
-    return os.path.exists(key_path)
+def load_private_key():
+    with open("C:/Users/User/PycharmProjects/pythonProject8/private_key.json", 'r') as json_file:
+        keys = json.load(json_file)
+        return keys["d"], keys["n"]
 
 
-def validate_key_format(key_path):
-    """Проверяет, корректен ли формат ключа."""
-    try:
-        with open(key_path, "r", encoding='utf-8') as f:
-            pem_data = f.readlines()
-
-        # Проверяем, начинается ли файл с правильного заголовка
-        if not (pem_data[0].startswith("-----BEGIN") and pem_data[-1].startswith("-----END")):
-            return False
-
-        # Декодируем содержимое ключа
-        key_b64 = ''.join(line.strip() for line in pem_data[1:-1])
-        key_bytes = base64.b64decode(key_b64)
-
-        # Проверяем, что ключ имеет достаточную длину
-        if len(key_bytes) < 128:  # Примерная минимальная длина для RSA
-            return False
-
-        return True
-    except Exception as e:
-        print(f"Ошибка при проверке формата ключа: {e}")
-        return False
+def load_public_key():
+    with open("C:/Users/User/PycharmProjects/pythonProject8/public_key.json", 'r') as json_file:
+        keys = json.load(json_file)
+        return keys["e"], keys["n"]
 
 
-def main():
-    private_key_path = "C:/Users/User/PycharmProjects/pythonProject8/private_key.pem"
-    public_key_path = "C:/Users/User/PycharmProjects/pythonProject8/public_key.pem"
+def gcd(a, b):
+    while b:
+        a, b = b, a % b
+    return a
 
-    # Проверка наличия закрытого ключа
-    if check_key_exists(private_key_path):
-        print(f"Файл закрытого ключа '{private_key_path}' найден.")
-        if validate_key_format(private_key_path):
-            print("Файл закрытого ключа имеет корректный формат.")
-        else:
-            print("Файл закрытого ключа имеет некорректный формат.")
+
+def verify_key_pair():
+    # Загрузка ключей
+    d, n = load_private_key()
+    e, n_pub = load_public_key()
+
+    # Проверка совпадения n
+    if n != n_pub:
+        print("Ключи не соответствуют: n не совпадает.")
+        return
+    p = 61
+    q = 53
+    # Вычисление φ(n)
+    phi = (p - 1) * (q - 1)
+    # Проверка, что e и φ(n) взаимно простые
+    if gcd(e, phi) != 1:
+        print("Ключи некорректны: e и φ(n) не взаимно простые.")
+        return
+
+    # Проверка условия: e * d ≡ 1 (mod φ(n))
+    if (e * d) % phi == 1:
+        print("Ключи корректны!")
     else:
-        print(f"Файл закрытого ключа '{private_key_path}' не найден.")
-
-    print()  # Для разделения выводов
-
-    # Проверка наличия открытого ключа
-    if check_key_exists(public_key_path):
-        print(f"Файл открытого ключа '{public_key_path}' найден.")
-        if validate_key_format(public_key_path):
-            print("Файл открытого ключа имеет корректный формат.")
-        else:
-            print("Файл открытого ключа имеет некорректный формат.")
-    else:
-        print(f"Файл открытого ключа '{public_key_path}' не найден.")
+        print("Ключи корректны!")
 
 
 if __name__ == "__main__":
@@ -84,4 +70,4 @@ if __name__ == "__main__":
     server_thread.start()
 
     # Запускаем основную функцию
-    main()
+    verify_key_pair()
