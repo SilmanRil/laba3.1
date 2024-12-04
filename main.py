@@ -24,7 +24,7 @@ def start_server():
 def load_private_key():
     with open("C:/Users/User/PycharmProjects/pythonProject8/private_key.json", 'r') as json_file:
         keys = json.load(json_file)
-        return keys["d"], keys["n"]
+        return keys["d"], keys["n"], keys["p"], keys["q"]
 
 
 def load_public_key():
@@ -41,17 +41,17 @@ def gcd(a, b):
 
 def verify_key_pair():
     # Загрузка ключей
-    d, n = load_private_key()
+    d, n, p, q = load_private_key()
     e, n_pub = load_public_key()
 
     # Проверка совпадения n
     if n != n_pub:
         print("Ключи не соответствуют: n не совпадает.")
         return
-    p = 61
-    q = 53
+
     # Вычисление φ(n)
     phi = (p - 1) * (q - 1)
+
     # Проверка, что e и φ(n) взаимно простые
     if gcd(e, phi) != 1:
         print("Ключи некорректны: e и φ(n) не взаимно простые.")
@@ -61,7 +61,7 @@ def verify_key_pair():
     if (e * d) % phi == 1:
         print("Ключи корректны!")
     else:
-        print("Ключи корректны!")
+        print("Ключи некорректны!")
 
 
 if __name__ == "__main__":
